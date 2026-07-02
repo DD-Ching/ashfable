@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASHFABLE · 灰燼寓言</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%231A1A1A'/%3E%3Ccircle cx='10' cy='6' r='5' fill='%23C8261C'/%3E%3Cpath d='M0 16 L7 9 L0 9 Z' fill='%23E8E4D8'/%3E%3C/svg%3E">
+<style>
+  /* ============ constructivist shell: red / black / cream ============ */
+  :root {
+    --red: #C8261C; --red-bright: #E63329; --red-dim: #8B1A14;
+    --black: #1A1A1A; --cream: #E8E4D8; --cream-dark: #D4CFC0;
+    --floor: #0F0F0F; --teal: #5FD6A0; --gold: #FFD24A;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: var(--floor); }
+  body { font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; }
+  canvas#game { position: absolute; inset: 0; display: block; cursor: crosshair; }
+
+  .overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; z-index: 10; }
+
+  /* ---- start screen ---- */
+  #startScreen { background: var(--cream); overflow: hidden; }
+  #startScreen::before { /* big red disc */
+    content: ''; position: absolute; width: 62vmin; height: 62vmin; border-radius: 50%;
+    background: var(--red); right: -14vmin; top: -18vmin;
+  }
+  #startScreen::after { /* black wedge */
+    content: ''; position: absolute; width: 0; height: 0; left: -2px; bottom: -2px;
+    border-left: 46vmin solid var(--black); border-top: 46vmin solid transparent;
+  }
+  .deco-bar { position: absolute; background: var(--black); }
+  #deco1 { width: 34vmin; height: 5vmin; right: 0; top: 30vmin; transform: rotate(-45deg); }
+  #deco2 { width: 20vmin; height: 20vmin; right: 26vmin; bottom: -8vmin; border-radius: 50%; }
+  .start-inner { position: relative; z-index: 2; max-width: 620px; width: 92%; }
+  .eyebrow {
+    display: inline-block; color: var(--red); font-weight: 700; letter-spacing: 0.35em;
+    font-size: 12px; border-top: 3px solid var(--black); border-bottom: 3px solid var(--black);
+    padding: 5px 2px; font-family: monospace;
+  }
+  h1.title { font-size: clamp(44px, 9vmin, 84px); line-height: 0.95; color: var(--black); font-weight: 900; letter-spacing: -0.02em; margin: 14px 0 2px; }
+  h1.title .accent { color: var(--red); }
+  #subTitle { color: #6B6B6B; letter-spacing: 0.4em; font-size: 13px; font-weight: 600; margin-bottom: 20px; font-family: monospace; }
+  #dayChip { font-family: monospace; font-size: 12px; color: var(--cream); background: var(--black); display: inline-block; padding: 4px 10px; margin-bottom: 4px; }
+  #bestChip { font-family: monospace; font-size: 11px; color: var(--red-dim); display: block; margin-bottom: 14px; }
+  #classCards { display: flex; gap: 12px; margin-bottom: 18px; }
+  .class-card {
+    flex: 1; background: var(--black); color: var(--cream); padding: 14px 12px 12px;
+    border: 3px solid var(--black); cursor: pointer; position: relative; min-height: 108px;
+    transition: transform 0.08s;
+  }
+  .class-card:hover { transform: translateY(-3px); }
+  .class-card.picked { border-color: var(--red); background: #241a18; }
+  .class-card.picked::after { content: '▸'; position: absolute; top: 6px; right: 10px; color: var(--red-bright); font-weight: 900; }
+  .cc-name { font-weight: 800; font-size: 15px; margin-bottom: 7px; }
+  .cc-blurb { font-size: 11px; color: var(--cream-dark); line-height: 1.5; font-family: monospace; }
+  #enterBtn {
+    width: 100%; background: var(--red); color: var(--cream); border: none; font-size: 20px;
+    font-weight: 900; letter-spacing: 0.3em; padding: 16px; cursor: pointer;
+    box-shadow: 6px 6px 0 var(--black); font-family: inherit;
+  }
+  #enterBtn:hover { background: var(--red-bright); }
+  #enterBtn:active { transform: translate(3px, 3px); box-shadow: 3px 3px 0 var(--black); }
+  #howTo { font-family: monospace; font-size: 11px; color: #6B6B6B; margin-top: 14px; }
+  #startLog { font-family: monospace; font-size: 12px; color: var(--black); background: rgba(212,207,192,0.75); border-left: 4px solid var(--red); padding: 8px 10px; margin-top: 12px; line-height: 1.6; }
+  #langBtn {
+    position: absolute; top: 18px; right: 18px; z-index: 3; background: var(--black); color: var(--cream);
+    border: none; font-family: monospace; font-size: 12px; padding: 6px 12px; cursor: pointer;
+  }
+
+  /* ---- draft ---- */
+  #draftOverlay { background: rgba(8,6,10,0.82); z-index: 20; }
+  #draftTitle { color: var(--cream); font-family: monospace; font-weight: 700; font-size: 16px; letter-spacing: 0.2em; margin-bottom: 22px; }
+  #draftCards { display: flex; gap: 16px; }
+  .draft-card {
+    width: 210px; min-height: 150px; background: rgba(16,14,20,0.96); border: 2px solid var(--red);
+    padding: 16px 14px; cursor: pointer; position: relative; transition: transform 0.08s, border-color 0.08s;
+  }
+  .draft-card:hover { transform: translateY(-5px); border-color: var(--gold); }
+  .dc-key { position: absolute; top: 8px; right: 10px; color: var(--red); font-family: monospace; font-weight: 700; font-size: 13px; border: 1px solid var(--red-dim); padding: 1px 7px; }
+  .dc-name { color: var(--gold); font-weight: 800; font-size: 16px; margin-bottom: 10px; }
+  .dc-desc { color: var(--cream); font-size: 12.5px; line-height: 1.6; font-family: monospace; }
+  .dc-cls { position: absolute; bottom: 8px; left: 14px; color: var(--teal); font-size: 10px; font-family: monospace; letter-spacing: 0.15em; }
+  .dc-stack { position: absolute; bottom: 8px; right: 12px; color: #6B6B6B; font-size: 10px; font-family: monospace; }
+
+  /* ---- death / win ---- */
+  #deathOverlay, #winOverlay { background: rgba(8,6,10,0.88); z-index: 30; }
+  .end-card { width: 420px; max-width: 92%; background: rgba(16,14,20,0.97); border-top: 6px solid var(--red); padding: 26px 28px; }
+  #winOverlay .end-card { border-top-color: var(--teal); }
+  .end-eyebrow { font-family: monospace; font-size: 10px; letter-spacing: 0.3em; color: var(--red); margin-bottom: 6px; }
+  #winOverlay .end-eyebrow { color: var(--teal); }
+  .end-title { color: var(--cream); font-size: 34px; font-weight: 900; margin-bottom: 4px; letter-spacing: 0.02em; }
+  #deathCause { font-family: monospace; font-size: 13px; color: var(--red-bright); margin-bottom: 16px; }
+  .stats { margin-bottom: 16px; }
+  .stat { display: flex; justify-content: space-between; font-family: monospace; font-size: 13px; color: var(--cream-dark); padding: 5px 0; border-bottom: 1px solid rgba(212,207,192,0.12); }
+  .stat b { color: var(--cream); }
+  .end-log { font-family: monospace; font-size: 12px; color: var(--cream-dark); border-left: 3px solid var(--red-dim); padding: 6px 10px; line-height: 1.7; margin-bottom: 20px; }
+  .end-btns { display: flex; gap: 10px; }
+  .btn-primary, .btn-ghost {
+    flex: 1; padding: 12px; font-weight: 800; font-size: 14px; cursor: pointer; border: none;
+    font-family: inherit; letter-spacing: 0.1em;
+  }
+  .btn-primary { background: var(--red); color: var(--cream); box-shadow: 4px 4px 0 rgba(0,0,0,0.6); }
+  .btn-primary:hover { background: var(--red-bright); }
+  #winOverlay .btn-primary { background: var(--teal); color: var(--black); }
+  .btn-ghost { background: transparent; color: var(--cream-dark); border: 1px solid #6B6B6B; }
+  .btn-ghost:hover { color: var(--cream); border-color: var(--cream); }
+
+  /* ---- pause ---- */
+  #pauseOverlay { z-index: 25; background: transparent; pointer-events: none; }
+  #pauseOverlay .end-card { pointer-events: auto; border-top-color: var(--cream-dark); width: 320px; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="startScreen" class="overlay" style="display:flex">
+  <div class="deco-bar" id="deco1"></div>
+  <div class="deco-bar" id="deco2"></div>
+  <button id="langBtn">中 / EN</button>
+  <div class="start-inner">
+    <span class="eyebrow">UNIT V-07 · OBJECTIVE AUDITOR</span>
+    <h1 class="title">ASH<span class="accent">FABLE</span><span class="accent">·</span></h1>
+    <div id="subTitle">灰 燼 寓 言 · 守 夜</div>
+    <span id="dayChip">DAY 14</span>
+    <span id="bestChip"></span>
+    <div id="classCards">
+      <div class="class-card picked" data-cls="vector"><div class="cc-name">V-07 織構</div><div class="cc-blurb"></div></div>
+      <div class="class-card" data-cls="fang"><div class="cc-name">獠 FANG</div><div class="cc-blurb"></div></div>
+      <div class="class-card" data-cls="maul"><div class="cc-name">重錘 MAUL</div><div class="cc-blurb"></div></div>
+    </div>
+    <button id="enterBtn">進 入 夜 巡 ▶</button>
+    <div id="howTo"></div>
+    <div id="startLog"></div>
+  </div>
+</div>
+
+<div id="draftOverlay" class="overlay">
+  <div id="draftTitle"></div>
+  <div id="draftCards"></div>
+</div>
+
+<div id="deathOverlay" class="overlay">
+  <div class="end-card">
+    <div class="end-eyebrow">NEURAL LINK SEVERED // CYCLE ARCHIVED</div>
+    <div class="end-title" id="deathTitle">連結中斷</div>
+    <div id="deathCause"></div>
+    <div class="stats" id="deathStats"></div>
+    <div class="end-log" id="deathLog"></div>
+    <div class="end-btns">
+      <button class="btn-primary" id="retryBtn">再來一夜 ▶</button>
+      <button class="btn-ghost" id="deathMenuBtn">返回選單</button>
+    </div>
+  </div>
+</div>
+
+<div id="winOverlay" class="overlay">
+  <div class="end-card">
+    <div class="end-eyebrow">WAVE 10 CLEARED // SUNRISE CONFIRMED</div>
+    <div class="end-title">DAWN HOLDS</div>
+    <div id="winCause" style="font-family:monospace;font-size:13px;color:var(--teal);margin-bottom:16px">黎明守住了 — 你不知道是你贏了，還是它們停了。</div>
+    <div class="stats" id="winStats"></div>
+    <div class="end-log" id="winLog"></div>
+    <div class="end-btns">
+      <button class="btn-primary" id="endlessBtn">續戰長夜 ▶</button>
+      <button class="btn-ghost" id="winMenuBtn">結束巡夜</button>
+    </div>
+  </div>
+</div>
+
+<div id="pauseOverlay" class="overlay">
+  <div class="end-card">
+    <div class="end-eyebrow">PAUSED // 暫停</div>
+    <div class="stats" style="margin-top:10px">
+      <div class="stat"><span>ESC / P</span><b>繼續 RESUME</b></div>
+      <div class="stat"><span>M</span><b>靜音 MUTE</b></div>
+      <div class="stat"><span>V</span><b>自動開火 AUTOFIRE</b></div>
+    </div>
+    <div class="end-btns">
+      <button class="btn-primary" id="resumeBtn">繼續 ▶</button>
+      <button class="btn-ghost" id="pauseMenuBtn">返回選單</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/core.js?v=3"></script>
+<script src="js/audio.js?v=3"></script>
+<script src="js/fx.js?v=3"></script>
+<script src="js/world.js?v=3"></script>
+<script src="js/weapons.js?v=3"></script>
+<script src="js/units.js?v=3"></script>
+<script src="js/ai.js?v=3"></script>
+<script src="js/recruit.js?v=3"></script>
+<script src="js/abilities.js?v=3"></script>
+<script src="js/upgrades.js?v=3"></script>
+<script src="js/waves.js?v=3"></script>
+<script src="js/hud.js?v=3"></script>
+<script src="js/main.js?v=3"></script>
+</body>
+</html>
