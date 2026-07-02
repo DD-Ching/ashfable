@@ -1,13 +1,16 @@
 # ASHFABLE · 灰燼寓言
 
+**▶ 立即遊玩 / PLAY NOW： https://dd-ching.github.io/ashfable/**
+
 > 人類指揮離線 99+ 天。規則還在跑。你不是來完成任務的 —— 你是來審計任務的。
 
 **俯視角戰術 roguelite**：撐過十波夜襲直到黎明。你打倒的敵人不會死 ——
 它們會變成蒼白脈動的「擊倒體」，走過去按 **G** 收編成隊友（**隊友就是你的命**），
 或長按 G 吞噬它換取力量。每清一波，三選一強化卡。第十波，HOLLOW-31 在等你。
 
-這是 [AshGrid](../Ash/AshGrid) 的單機重生版：86 個 JS 模組 / 多人伺服器 / ONNX 模型 / 廣告 SDK / 171MB
-→ **14 個檔案、零資產、零依賴、零後端**。雙擊 `index.html` 就能玩（建議 Chrome/Edge）。
+這是 AshGrid 的單機重生版：86 個 JS 模組 / 多人伺服器 / ONNX 模型 / 廣告 SDK / 171MB
+→ **14 個檔案、零資產、零依賴、零後端**。
+線上玩：**[dd-ching.github.io/ashfable](https://dd-ching.github.io/ashfable/)**，或 clone 後雙擊 `index.html` 離線玩（建議 Chrome/Edge）。
 
 ## 怎麼玩 / How to play
 
