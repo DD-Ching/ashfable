@@ -52,7 +52,6 @@ const LAYOUTS = {
       r.push({ x: x - 60, y: y - 60, w: 120, h: 120, kind: 'cover' });
     for (const [x, y] of [[620, 620], [1180, 620], [620, 1180], [1180, 1180]])
       r.push({ x: x - 70, y: y - 70, w: 140, h: 140, kind: 'building', accent: true });
-    r.push({ x: 860, y: 860, w: 80, h: 80, kind: 'building', accent: true }); // center pillar
     return r;
   }},
   ruins: { zh: '殘垣', en: 'RUINS', build() { // random broken blocks + scattered crates
@@ -82,7 +81,11 @@ const COVER_HP = { building: 220, cover: 160 };
 function buildWorld(layoutId) {
   walls.length = 0;
   const layout = LAYOUTS[layoutId] || LAYOUTS.industrial;
+  const SPAWN_SAFE = { x: 900 - 110, y: 900 - 110, w: 220, h: 220 };  // player always deploys at (900,900)
   for (const r of layout.build()) {
+    if (r.kind === 'building' &&                                    // no building may sit on the spawn pad
+        r.x < SPAWN_SAFE.x + SPAWN_SAFE.w && r.x + r.w > SPAWN_SAFE.x &&
+        r.y < SPAWN_SAFE.y + SPAWN_SAFE.h && r.y + r.h > SPAWN_SAFE.y) continue;
     r.hp = r.maxHp = COVER_HP[r.kind] || 200;
     walls.push(r);
   }
@@ -95,6 +98,7 @@ function buildWorld(layoutId) {
 function buildCoverPoints() {
   coverPoints = [];
   for (const wl of walls) {
+    if (wl.hp <= 0) continue;
     const cx = wl.x + wl.w / 2, cy = wl.y + wl.h / 2;
     const pts = [
       { x: cx, y: wl.y - 32 }, { x: cx, y: wl.y + wl.h + 32 },
@@ -141,14 +145,40 @@ function wallAt(x, y, kind) {
   return null;
 }
 function damageWall(wl, dmg) {
+  if (wl.hp <= 0) return;
   wl.hp -= dmg;
   if (wl.hp <= 0) {
-    wl.hp = 0;
+    wl.hp = 0;                                                     // stays in walls[] as rubble — nanites rebuild it at the lull
     createExplosion(wl.x + wl.w / 2, wl.y + wl.h / 2, 'small');
-    const i = walls.indexOf(wl);
-    if (i >= 0) walls.splice(i, 1);
     buildCoverPoints();
     rebuildLosCache();
+  }
+}
+// dawn-lull NANITE REBUILD: the battlefield repairs itself between waves —
+// nobody ever came to cancel the arena, so it maintains itself.
+function repairWalls() {
+  let rebuilt = 0, healed = 0;
+  for (const wl of walls) {
+    if (wl.hp <= 0) {
+      let occupied = false;                                        // never rebuild on top of someone
+      const units = [player, ...allies, ...enemies];
+      for (const u of units) {
+        if (u && u.alive && u.x + u.radius > wl.x && u.x - u.radius < wl.x + wl.w &&
+            u.y + u.radius > wl.y && u.y - u.radius < wl.y + wl.h) { occupied = true; break; }
+      }
+      if (occupied) continue;
+      wl.hp = Math.round(wl.maxHp * 0.6);
+      spawnPopup(wl.x + wl.w / 2, wl.y + wl.h / 2, '◆', COLORS.teal);
+      rebuilt++;
+    } else if (wl.hp < wl.maxHp) {
+      wl.hp = Math.min(wl.maxHp, wl.hp + Math.round(wl.maxHp * 0.5));
+      healed++;
+    }
+  }
+  if (rebuilt || healed) {
+    buildCoverPoints();
+    rebuildLosCache();
+    if (rebuilt) showToast(T('◆ 奈米重建 — 戰場自我修復', '◆ NANITE REBUILD — the arena repairs itself'), COLORS.teal);
   }
 }
 // solid collision (buildings only — cover is waist-high & walkable)
@@ -226,6 +256,22 @@ function renderWorld() {
   // walls: shadow → body → dressing
   for (const wl of walls) {
     if (wl.x + wl.w < vx0 || wl.x > vx1 || wl.y + wl.h < vy0 || wl.y > vy1) continue;
+    if (wl.hp <= 0) {                                              // rubble: walkable scar until the nanites rebuild it
+      ctx.globalAlpha = 0.45;
+      ctx.fillStyle = COLORS.floorAccent;
+      ctx.fillRect(wl.x, wl.y, wl.w, wl.h);
+      ctx.strokeStyle = COLORS.gray; ctx.lineWidth = 1;
+      ctx.setLineDash([4, 6]);
+      ctx.strokeRect(wl.x + 2, wl.y + 2, wl.w - 4, wl.h - 4);
+      ctx.setLineDash([]);
+      ctx.fillStyle = COLORS.gray;
+      for (let i = 0; i < Math.min(6, Math.floor(wl.w * wl.h / 3000)); i++) {
+        const rx = wl.x + ((i * 73) % Math.max(1, wl.w - 8)), ry = wl.y + ((i * 41) % Math.max(1, wl.h - 8));
+        ctx.fillRect(rx, ry, 5, 4);
+      }
+      ctx.globalAlpha = 1;
+      continue;
+    }
     if (wl.kind === 'building') {
       ctx.fillStyle = COLORS.creamDark; ctx.globalAlpha = 0.5;
       ctx.fillRect(wl.x + 10, wl.y + 10, wl.w, wl.h);            // offset shadow

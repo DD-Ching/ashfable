@@ -154,7 +154,7 @@ function updateBullets() {
         if (!segRectHit(b.px, b.py, b.x, b.y, wl)) continue;
         if (wl.kind === 'cover') {
           if (b.startCover === wl) continue;                      // firing OUT of your own cover
-          damageWall(wl, b.damage); dead = true; break;
+          damageWall(wl, Math.max(3, Math.round(b.damage * 0.4))); dead = true; break;   // stray fire chips, not erases
         } else {
           if (b.rocket) { detonateRocket(b, b.x, b.y); dead = true; break; }
           if (b.bounceLeft > 0) {                                 // ricochet card
@@ -162,7 +162,7 @@ function updateBullets() {
             const fromLeft = b.px < wl.x, fromRight = b.px > wl.x + wl.w;
             if (fromLeft || fromRight) b.vx = -b.vx; else b.vy = -b.vy;
             b.x = b.px; b.y = b.py;
-          } else { damageWall(wl, b.damage); dead = true; }
+          } else { damageWall(wl, Math.max(2, Math.round(b.damage * 0.15))); dead = true; }  // buildings shrug off bullets
           break;
         }
       }
@@ -170,7 +170,7 @@ function updateBullets() {
     // target-inside-cover protection: bullet entering an occupied cover box dies at the edge
     if (!dead && !b.rocket) {
       const cv = coverRectAt(b.x, b.y);
-      if (cv && cv !== b.startCover) { damageWall(cv, Math.round(b.damage * 0.5)); dead = true; }
+      if (cv && cv !== b.startCover) { damageWall(cv, Math.max(2, Math.round(b.damage * 0.25))); dead = true; }
     }
 
     // near-miss whiz (enemy bullets past the player's head)

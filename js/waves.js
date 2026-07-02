@@ -101,6 +101,7 @@ function updateWaves() {
       game.score += 200 + game.wave * 20;
       player.grenades = player.maxGrenades;
       player.reserve = Math.max(player.reserve, WEAPONS[player.weapon].reserve);   // dawn-lull resupply
+      repairWalls();                                               // …and the arena stitches itself back together
       showBigBanner(T('波次肅清', 'WAVE CLEARED'), '+' + (200 + game.wave * 20) + (stunnedLeft ? T(' · 場上還有擊倒體', ' · KO bodies on the field') : ''), COLORS.cream);
     }
   } else if (waveState.phase === 'intermission') {

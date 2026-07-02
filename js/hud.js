@@ -151,7 +151,7 @@ function renderHUD() {
   ctx.fillRect(mm.x - 2, mm.y - 2, 154, 154);
   ctx.strokeStyle = COLORS.red; ctx.strokeRect(mm.x - 2, mm.y - 2, 154, 154);
   ctx.fillStyle = COLORS.gray; ctx.globalAlpha = 0.7;
-  for (const wl of walls) if (wl.kind === 'building') ctx.fillRect(mm.x + wl.x * mm.s, mm.y + wl.y * mm.s, Math.max(1.5, wl.w * mm.s), Math.max(1.5, wl.h * mm.s));
+  for (const wl of walls) if (wl.kind === 'building' && wl.hp > 0) ctx.fillRect(mm.x + wl.x * mm.s, mm.y + wl.y * mm.s, Math.max(1.5, wl.w * mm.s), Math.max(1.5, wl.h * mm.s));
   ctx.globalAlpha = 1;
   for (const e of enemies) {
     if (!e.alive) continue;
